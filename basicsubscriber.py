@@ -185,7 +185,7 @@ while True:
             for msg in kv6:
                 parsed = parse_message(msg)
                 if parsed["vehicle"] in ["2201", "2202", "2203", "2204"]:
-                    text = (f"{datetime.datetime.now().isoformat(timespec='seconds')}: "
+                    text = (f"[{datetime.datetime.now().isoformat(timespec='seconds')}] "
                             f"Vehicle {parsed['vehicle']} {parsed['type']} "
                             f"line {parsed['line']} direction {parsed['headsign']} "
                             f"at {parsed['stop_name']}: {parsed['location']}")
