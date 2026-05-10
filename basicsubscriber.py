@@ -44,7 +44,9 @@ while True:
         tree = ElementTree.fromstring(contents)
         for kv6 in tree.findall(f"{{{kv6_namespace}}}KV6posinfo"):
             for msg in kv6:
-                print(parse_message(msg))
+                parsed_kv6 = parse_message(msg)
+                if parsed_kv6["vehicle"].startswith("22"):
+                   print(parsed_kv6)
     except:
         print("ERROR ", address, contents)
         raise
