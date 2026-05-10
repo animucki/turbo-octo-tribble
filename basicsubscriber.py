@@ -18,8 +18,8 @@ import zmq
 
 # --- config ---
 config = yaml.safe_load(open("config.yaml"))
-TELEGRAM_TOKEN = config.get("telegram", "token")
-TELEGRAM_CHAT_ID = config.get("telegram", "chat_id")
+TELEGRAM_TOKEN = config["telegram"]["token"]
+TELEGRAM_CHAT_ID = config["telegram"]["chat_id"]
 LOG_PATH = "/home/bxa/tram.log"
 
 # --- mute state ---
