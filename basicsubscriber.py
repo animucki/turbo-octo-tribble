@@ -46,7 +46,7 @@ while True:
         for kv6 in tree.findall(f"{{{kv6_namespace}}}KV6posinfo"):
             for msg in kv6:
                 parsed_kv6 = parse_message(msg)
-                if parsed_kv6["vehicle"].startswith("22"):
+                if parsed_kv6["vehicle"] in ["2201", "2202", "2203", "2204", "2137"]:
                    print(parsed_kv6)
     except:
         print("ERROR ", address, contents)
