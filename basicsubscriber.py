@@ -1,9 +1,29 @@
 from gzip import GzipFile
 from io import BytesIO
+from pyproj import Transformer
 from xml.etree import ElementTree
 import zmq
 
-namespace = "http://bison.connekt.nl/tmi8/kv6/msg"
+def maps_link(rd_x, rd_y):
+    rd_to_wgs84 = Transformer.from_crs("EPSG:28992", "EPSG:4326", always_xy=True)
+    lon, lat = rd_to_wgs84.transform(int(rd_x), int(rd_y))
+    return f"https://maps.apple.com/?ll={lat},{lon}"
+
+
+kv6_namespace = "http://bison.connekt.nl/tmi8/kv6/msg"
+def parse_message(msg, ns=kv6_namespace):
+    def t(tag): return msg.findtext(f"{{{ns}}}{tag}")
+
+    return {
+        "type": msg.tag.split("}")[1],
+        "line": t("lineplanningnumber"),
+        "vehicle": t("vehiclenumber"),
+        "stop_code": t("userstopcode"),
+        "journey": t("journeynumber"),
+        "punctuality_s": t("punctuality"),
+        "location": maps_link(t("rd-x"), t("rd-y"))
+    }
+
 
 context = zmq.Context()
 
@@ -19,11 +39,9 @@ while True:
         contents = GzipFile("", "r", 0, BytesIO(contents)).read()
         # print("GZIP", address, contents)
         tree = ElementTree.fromstring(contents)
-        for kv6 in tree.findall(f"{{{namespace}}}KV6posinfo"):
+        for kv6 in tree.findall(f"{{{kv6_namespace}}}KV6posinfo"):
             for msg in kv6:
-                vehicle = msg.findtext(f"{{{namespace}}}vehiclenumber")
-                msg_type = msg.tag.split("}")[1]  # strips namespace from INIT, ONROUTE etc.
-                print(msg_type, vehicle)
+                print(parse_message(msg))
     except:
         print("NOT", address, contents)
         raise
