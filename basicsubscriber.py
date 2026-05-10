@@ -11,6 +11,16 @@ import urllib.request
 import zipfile
 import zmq
 
+# --- Memory management --- #
+def mem_mb():
+    with open("/proc/self/status") as f:
+        for line in f:
+            if line.startswith("VmRSS:"):
+                return int(line.split()[1]) // 1024
+    return 0
+
+print(f"Before GTFS: {mem_mb()}MB")
+
 # --- coordinate conversion ---
 rd_to_wgs84 = Transformer.from_crs("EPSG:28992", "EPSG:4326", always_xy=True)
 
@@ -45,29 +55,28 @@ def load_gtfs(url=GTFS_URL, path=GTFS_PATH):
         else:
             raise
 
-    zf = zipfile.ZipFile(path)
+    def build_stops(zf):
+        stops = {}
+        with zf.open("stops.txt") as f:
+            for row in csv.DictReader(TextIOWrapper(f, encoding="utf-8-sig")):
+                if row["stop_code"]:
+                    stops[row["stop_code"]] = row["stop_name"]
+        print(f"Stops loaded: {len(stops)} entries, {mem_mb()}MB")
+        return stops
 
-    def read_table(filename):
-        with zf.open(filename) as f:
-            return list(csv.DictReader(TextIOWrapper(f, encoding="utf-8-sig")))
+    def build_trips(zf):
+        trips = {}
+        with zf.open("trips.txt") as f:
+            for row in csv.DictReader(TextIOWrapper(f, encoding="utf-8-sig")):
+                if row.get("realtime_trip_id", "").startswith("GVB:") and row.get("trip_short_name"):
+                    trips[row["trip_short_name"]] = row.get("trip_headsign", "")
+        print(f"Trips loaded: {len(trips)} entries, {mem_mb()}MB")
+        return trips
 
-    stops_rows = read_table("stops.txt")
-    trips_rows = read_table("trips.txt")
-
-    print("Sample stop_ids:", [r["stop_id"] for r in stops_rows[:5]])
-    print("Sample trip_ids:", [r["trip_id"] for r in trips_rows[:5]])
-
-    stops = {
-        r["stop_code"]: r["stop_name"]
-        for r in stops_rows
-        if r["stop_code"]  # some rows have empty stop_code
-    }
-
-    trips = {
-        r["trip_short_name"]: r["trip_headsign"]
-        for r in trips_rows
-        if r.get("realtime_trip_id", "").startswith("GVB:") and r.get("trip_short_name")
-    }
+    with zipfile.ZipFile(path) as zf:
+        print(f"Zip opened: {mem_mb()}MB")
+        stops = build_stops(zf)
+        trips = build_trips(zf)
 
     return stops, trips
 
