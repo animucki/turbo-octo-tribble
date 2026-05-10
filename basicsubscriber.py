@@ -4,6 +4,7 @@ from io import BytesIO, TextIOWrapper
 from pyproj import Transformer
 from xml.etree import ElementTree
 import csv
+import datetime
 import os
 import shutil
 import urllib.error
@@ -125,10 +126,11 @@ while True:
         tree = ElementTree.fromstring(contents)
         for kv6 in tree.findall(f"{{{kv6_namespace}}}KV6posinfo"):
             for msg in kv6:
-                print(parse_message(msg))
+                parsed_kv6 = parse_message(msg)
+                print(f"{datetime.datetime.now().isoformat()}: Vehicle {parsed_kv6["vehicle"]} {parsed_kv6["type"]} line {parsed_kv6["line"]} direction {parsed_kv6["headsign"]} at {parsed_kv6["stop_name"]}: {parsed_kv6["location"]}")
+                i += 1
     except Exception as ex:
         print(ex)
-    i += 1
     if i > 10:
         break
 
