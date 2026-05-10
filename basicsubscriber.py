@@ -5,9 +5,12 @@ from xml.etree import ElementTree
 import zmq
 
 def maps_link(rd_x, rd_y):
-    rd_to_wgs84 = Transformer.from_crs("EPSG:28992", "EPSG:4326", always_xy=True)
-    lon, lat = rd_to_wgs84.transform(int(rd_x), int(rd_y))
-    return f"https://maps.apple.com/?ll={lat},{lon}"
+    try:
+        rd_to_wgs84 = Transformer.from_crs("EPSG:28992", "EPSG:4326", always_xy=True)
+        lon, lat = rd_to_wgs84.transform(int(rd_x), int(rd_y))
+        return f"https://maps.apple.com/?ll={lat},{lon}"
+    except:
+        return None
 
 
 kv6_namespace = "http://bison.connekt.nl/tmi8/kv6/msg"
@@ -43,7 +46,7 @@ while True:
             for msg in kv6:
                 print(parse_message(msg))
     except:
-        print("NOT", address, contents)
+        print("ERROR ", address, contents)
         raise
 
 subscriber.close()
