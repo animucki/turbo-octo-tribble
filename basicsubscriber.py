@@ -6,6 +6,7 @@ from xml.etree import ElementTree
 import csv
 import io
 import os
+import shutil
 import time
 import urllib.request
 import zipfile
@@ -38,7 +39,7 @@ def load_gtfs(url=GTFS_URL, path=GTFS_PATH):
         with urllib.request.urlopen(req) as r:
             print("GTFS updated on server, downloading...")
             with open(path, "wb") as f:
-                f.write(r.read())
+                shutil.copyfileobj(r, f)
     except urllib.request.HTTPError as e:
         if e.code == 304:
             print("GTFS unchanged, using cached file")
