@@ -8,7 +8,8 @@ def maps_link(rd_x, rd_y):
     try:
         rd_to_wgs84 = Transformer.from_crs("EPSG:28992", "EPSG:4326", always_xy=True)
         lon, lat = rd_to_wgs84.transform(int(rd_x), int(rd_y))
-        return f"https://maps.apple.com/?ll={lat},{lon}"
+        # return f"https://maps.apple.com/?ll={lat},{lon}"
+        return f"https://maps.google.com/?q={lat},{lon}"
     except:
         return None
 
