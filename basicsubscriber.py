@@ -35,22 +35,24 @@ subscriber = context.socket(zmq.SUB)
 subscriber.connect("tcp://pubsub.besteffort.ndovloket.nl:7658")
 subscriber.setsockopt_string(zmq.SUBSCRIBE, "/GVB/KV6posinfo")
 
+i = 0
 while True:
     multipart = subscriber.recv_multipart()
     address = multipart[0]
     contents = b"".join(multipart[1:])
     try:
         contents = GzipFile("", "r", 0, BytesIO(contents)).read()
-        # print("GZIP", address, contents)
         tree = ElementTree.fromstring(contents)
         for kv6 in tree.findall(f"{{{kv6_namespace}}}KV6posinfo"):
             for msg in kv6:
                 parsed_kv6 = parse_message(msg)
-                if parsed_kv6["vehicle"] in ["2201", "2202", "2203", "2204", "2137"]:
-                   print(parsed_kv6)
-    except:
-        print("ERROR ", address, contents)
-        raise
+                # if parsed_kv6["vehicle"] in ["2201", "2202", "2203", "2204", "2137"]:
+                print(parsed_kv6)
+    except Exception as ex:
+        print(ex)
+        print(address, contents)
+    if i > 10:
+        break
 
 subscriber.close()
 context.term()
