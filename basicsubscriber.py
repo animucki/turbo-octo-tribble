@@ -57,8 +57,17 @@ def load_gtfs(url=GTFS_URL, path=GTFS_PATH):
     print("Sample stop_ids:", [r["stop_id"] for r in stops_rows[:5]])
     print("Sample trip_ids:", [r["trip_id"] for r in trips_rows[:5]])
 
-    stops = {r["stop_id"]: r["stop_name"] for r in stops_rows}
-    trips = {r["trip_id"]: r.get("trip_headsign", "") for r in trips_rows}
+    stops = {
+        r["stop_code"]: r["stop_name"]
+        for r in stops_rows
+        if r["stop_code"]  # some rows have empty stop_code
+    }
+
+    trips = {
+        r["trip_short_name"]: r["trip_headsign"]
+        for r in trips_rows
+        if r.get("realtime_trip_id", "").startswith("GVB:") and r.get("trip_short_name")
+    }
 
     return stops, trips
 
@@ -67,16 +76,10 @@ stops, trips = load_gtfs()
 
 # --- helpers to resolve KV6 codes against GTFS ---
 def lookup_stop(stop_code):
-    for candidate in [stop_code, f"GVB:{stop_code}"]:
-        if candidate in stops:
-            return stops[candidate]
-    return stop_code
+    return stops.get(stop_code, stop_code)  # fall back to raw code
 
 def lookup_headsign(journey_number):
-    for trip_id, headsign in trips.items():
-        if journey_number in trip_id:
-            return headsign
-    return None
+    return trips.get(journey_number)
 
 
 # --- KV6 parsing ---
