@@ -4,10 +4,9 @@ from io import BytesIO, TextIOWrapper
 from pyproj import Transformer
 from xml.etree import ElementTree
 import csv
-import io
 import os
 import shutil
-import time
+import urllib.error
 import urllib.request
 import zipfile
 import zmq
@@ -40,26 +39,40 @@ def load_gtfs(url=GTFS_URL, path=GTFS_PATH):
             print("GTFS updated on server, downloading...")
             with open(path, "wb") as f:
                 shutil.copyfileobj(r, f)
-    except urllib.request.HTTPError as e:
+    except urllib.error.HTTPError as e:
         if e.code == 304:
             print("GTFS unchanged, using cached file")
         else:
             raise
 
-    return zipfile.ZipFile(path)
+    zf = zipfile.ZipFile(path)
+
+    def read_table(filename):
+        with zf.open(filename) as f:
+            return list(csv.DictReader(TextIOWrapper(f, encoding="utf-8-sig")))
+
+    stops_rows = read_table("stops.txt")
+    trips_rows = read_table("trips.txt")
+
+    print("Sample stop_ids:", [r["stop_id"] for r in stops_rows[:5]])
+    print("Sample trip_ids:", [r["trip_id"] for r in trips_rows[:5]])
+
+    stops = {r["stop_id"]: r["stop_name"] for r in stops_rows}
+    trips = {r["trip_id"]: r.get("trip_headsign", "") for r in trips_rows}
+
+    return stops, trips
 
 stops, trips = load_gtfs()
 
 
 # --- helpers to resolve KV6 codes against GTFS ---
-def lookup_stop(stop_code, stops):
-    # Try bare code first, then common prefixes
+def lookup_stop(stop_code):
     for candidate in [stop_code, f"GVB:{stop_code}"]:
         if candidate in stops:
             return stops[candidate]
-    return stop_code  # fall back to raw code
+    return stop_code
 
-def lookup_headsign(journey_number, trips):
+def lookup_headsign(journey_number):
     for trip_id, headsign in trips.items():
         if journey_number in trip_id:
             return headsign
@@ -79,11 +92,8 @@ def parse_message(msg, ns=kv6_namespace):
         "type": msg.tag.split("}")[1],
         "line": t("lineplanningnumber"),
         "vehicle": t("vehiclenumber"),
-        "stop_code": stop_code,
-        "stop_name": lookup_stop(stop_code, stops) if stop_code else None,
-        "headsign": lookup_headsign(journey, trips) if journey else None,
-        "journey": journey,
-        "punctuality_s": t("punctuality"),
+        "stop_name": lookup_stop(stop_code) if stop_code else None,
+        "headsign": lookup_headsign(journey) if journey else None,
         "location": maps_link(t("rd-x"), t("rd-y"))
     }
 
@@ -106,9 +116,9 @@ while True:
                 print(parse_message(msg))
     except Exception as ex:
         print(ex)
+    i += 1
     if i > 10:
         break
-    i += 1
 
 subscriber.close()
 context.term()
