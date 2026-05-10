@@ -125,7 +125,8 @@ while True:
         tree = ElementTree.fromstring(contents)
         for kv6 in tree.findall(f"{{{kv6_namespace}}}KV6posinfo"):
             for msg in kv6:
-                print(parse_message(msg))
+                parsed_kv6 = parse_message(msg)
+                print(f"Vehicle {parsed_kv6["vehicle"]} {parsed_kv6["type"]} line {parsed_kv6["line"]} direction {parsed_kv6["headsign"]} at {parsed_kv6["stop_name"]}: {parsed_kv6["location"]}")
     except Exception as ex:
         print(ex)
     i += 1
